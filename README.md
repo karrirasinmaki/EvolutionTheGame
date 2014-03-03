@@ -10,7 +10,6 @@ What this is going to be
 - Made with node.js and JavaScript
 - Multiplayer game
 - Cross-platform and cross-device
-
 - Simple to play
 - Eat to grow bigger
   - What you eat decides what you are going to be
