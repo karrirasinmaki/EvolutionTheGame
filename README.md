@@ -1,16 +1,16 @@
-EvolutionTheGame
-================
+Minigolf
+========
 
-Story
-------------
-You are a little creature, living in deep deep water, starting your evolution journey. Eat and stay alive. Grow bigger and destroy your enemies. Every decision you make impacts what you are going to be. You are what you eat!
+Multiplayer minigolf game written in JvaScript and node.js.
 
-What this is going to be
-------------------------
-- Made with node.js and JavaScript
-- Realtime multiplayer game
-- Cross-platform and cross-device
-- Simple to play
-- Eat to grow bigger
-  - What you eat decides what you are going to be
-- Survive alone or with your friends
+Idea
+----
+Classic style minigolf game. Play everywhere, with every device, with everyone.
+
+Features
+--------
+- Lobby, where you challenge other players
+- Share a link to chellenge your friends
+- Single player mode
+- In-game chat
+- Cross-platform, cross-device
