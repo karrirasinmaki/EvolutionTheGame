@@ -8,7 +8,7 @@ You are a little creature, living in deep deep water, starting your evolution jo
 What this is going to be
 ------------------------
 - Made with node.js and JavaScript
-- Multiplayer game
+- Realtime multiplayer game
 - Cross-platform and cross-device
 - Simple to play
 - Eat to grow bigger
