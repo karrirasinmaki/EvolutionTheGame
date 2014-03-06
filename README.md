@@ -1,7 +1,7 @@
 Minigolf
 ========
 
-Multiplayer minigolf game written in JvaScript and node.js.
+Multiplayer minigolf game written in JavaScript and node.js.
 
 Idea
 ----
