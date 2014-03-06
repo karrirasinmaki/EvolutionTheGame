@@ -68,6 +68,11 @@
             if( this.entities[i].id == entity.id ) this.entities.pop(i);
         }
     };
+    View.prototype.removeAll = function() {
+        for(var i=0, l=this.entities.length; i<l; ++i) {
+            this.entities.pop(i);
+        }
+    };
     View.prototype.update = function() {
         this.super.update( this.context );
         this.context.clearRect( 0, 0, this.width, this.height );
@@ -85,8 +90,8 @@
         shadows = shadows || {};
         
         this.shadowLayer = new View().const( this.width, this.height );
-        this.gridH = this.height / grid.length;
-        this.gridW = this.width / grid[0].length;
+        this.gridH = Math.ceil( this.height / grid.length );
+        this.gridW = Math.ceil( this.width / grid[0].length );
         
         for(var j=0, jl=grid.length; j<jl; ++j) {
             var igrid = grid[j];
@@ -209,6 +214,11 @@
     
 })(window, document);
 
+var view;
+var players = [];
+var activePlayerNum = -1;
+var activePlayer = undefined;
+var activePlayerDone = false;
 
 /**
  * Distance between two objects, having fields x and y
@@ -231,22 +241,22 @@ bgView.fill( bgView.context );
 var map = new g.Map().const( 600, 400 );
 var grid = [
     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,1,1,1,1,1,1,0,0,0,0,0,0,1],
-    [1,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,8,0,0,1,9,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,1,1,1,1,1,1,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1, , , , , , , , , , , , , , , , ,1],
+    [1, , , , , , , , , , , , , , , , ,1],
+    [1, , , , , , , , , , , , , , , , ,1],
+    [1, , , , , , , , , , , , , , , , ,1],
+    [1, , , , , , , , , , , , , , , , ,1],
+    [1, , , , ,1,1,1,1,1,1, , , , , , ,1],
+    [1, , , , ,1, , , , , , , , , , , ,1],
+    [1, , , , ,1, ,9, , , , , ,8, , , ,1],
+    [1, , , , ,1, , , , , , , , , , , ,1],
+    [1, , , , ,1,1,1,1,1,1, , , , , , ,1],
+    [1, , , , , , , , , , , , , , , , ,1],
+    [1, , , , , , , , , , , , , , , , ,1],
+    [1, , , , , , , , , , , , , , , , ,1],
+    [1, , , , , , , , , , , , , , , , ,1],
+    [1, , , , , , , , , , , , , , , , ,1],
+    [1, , , , , , , , , , , , , , , , ,1],
     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
     
 ];
@@ -256,7 +266,7 @@ map.build(
     {
         0: null,
         1: function() {
-            return new g.Wall("#005C09");
+            return new g.Wall("#c7a474");
         },
         8: function(context, x, y) {
             context.startPoint = { x: x, y: y };
@@ -265,10 +275,13 @@ map.build(
     {
         9: function(context, x, y) {
             context.endPoint = { x: x, y: y };
-            return new g.Wall("black");
         }
     }
 );
+
+var hole = new g.Ball("black").const( 16, 16, map.endPoint.x + 8, map.endPoint.y + 8 );
+map.shadowLayer.add( hole );
+map.shadowLayer.update();
 
 
 var mouse = {
@@ -279,7 +292,7 @@ addEventListener("mousemove", function(e) {
     mouse.x = e.layerX,
     mouse.y = e.layerY
 }, false);
-addEventListener("click", function(e) {console.log(e);
+addEventListener("click", function(e) {
     var deltaX = mouse.y - activePlayer.y;
     var deltaY = mouse.x - activePlayer.x;
     var rad = Math.atan2( deltaX, deltaY );
@@ -291,8 +304,9 @@ addEventListener("click", function(e) {console.log(e);
     activePlayerDone = true;
     
     console.log("force: " + force);
-    console.log("player 1: " + ball.hits);
-    console.log("player 2: " + ball2.hits);
+    for(var i=0, l=players.length; i<l; ++i) {
+        console.log("player "+i+": " + players[i].hits);
+    }
 }, false);
 
 var nextPlayer = function() {
@@ -301,13 +315,6 @@ var nextPlayer = function() {
     activePlayer = players[activePlayerNum];
     activePlayerDone = false;
 }
-
-var view = new g.View().const( 600, 400 );
-view.mapLayer = map;
-var players = [];
-var activePlayerNum = -1;
-var activePlayer = undefined;
-var activePlayerDone = false;
 
 var stick = new g.Stick().const( 100, 10 );
 stick.onUpdate = function(c) {
@@ -324,30 +331,16 @@ stick.onUpdate = function(c) {
 };
 
 g.Ball.prototype.hits = 0;
-    
-var ball = new g.Ball("white").const( 16, 16 );
-ball.x = map.startPoint.x;
-ball.y = map.startPoint.y;
-
-var ball2 = new g.Ball("black").const( 16, 16 );
-ball2.x = map.startPoint.x;
-ball2.y = map.startPoint.y;
-    
-players.push( ball );
-players.push( ball2 );
-
-view.add( ball );
-view.add( ball2 );
-view.add( stick );
-
-nextPlayer();
 
 var thread = new g.Thread().const(30);
-thread.run(function() {
+var onStep = function() {
     view.update();
+    var bound = Math.max( Math.abs(activePlayer.vx), Math.abs(activePlayer.vy) );
     if(
-        Math.abs(distance( activePlayer, map.endPoint )) < map.gridW ||
-        Math.abs(distance( activePlayer, {x: map.endPoint.x+map.gridW, y: map.endPoint.y+map.gridH} )) < map.gridW 
+        (
+         Math.abs(distance( activePlayer, hole )) < hole.halfW - bound ||
+         Math.abs(distance( activePlayer, {x: hole.x+hole.halfW, y: hole.y+hole.halfH} )) < hole.halfW - bound
+        )
     ) {
         activePlayer.preventUpdate = true;
         nextPlayer();
@@ -360,4 +353,38 @@ thread.run(function() {
     else {
         stick.preventUpdate = false;
     }
-});
+};
+    
+var startGame = function() {
+    var ball = new g.Ball("white").const( 16, 16 );
+    ball.x = map.startPoint.x;
+    ball.y = map.startPoint.y;
+    
+    var ball2 = new g.Ball("black").const( 16, 16 );
+    ball2.x = map.startPoint.x;
+    ball2.y = map.startPoint.y;
+    
+    if(view == undefined) {
+        view = new g.View().const( 600, 400 );
+    }
+    view.removeAll();
+    view.mapLayer = map;
+    
+    players = [];
+    activePlayerNum = -1;
+    activePlayer = undefined;
+    activePlayerDone = false;
+        
+    players.push( ball );
+    players.push( ball2 );
+    
+    view.add( ball );
+    view.add( ball2 );
+    view.add( stick );
+    
+    nextPlayer();
+    
+    thread.run(function() {
+        onStep();
+    });
+};
