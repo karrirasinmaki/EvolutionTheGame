@@ -1,5 +1,10 @@
 (function(window, document) {
     
+    var gameWrapper = document.createElement("div");
+    gameWrapper.id = "game";
+    gameWrapper.style.position = "relative";
+    document.body.appendChild( gameWrapper );
+    
     var Thread = function() {
         
     };
@@ -12,6 +17,7 @@
     };
     
     var Entity = function() {
+        this.id = new Date().getTime();
     };
     Entity.prototype.super = function(width, height, x, y) {
         this.width = width;
@@ -20,12 +26,19 @@
         this.y = y || 0;
         return this;
     };
+    Entity.prototype.preventUpdate = false;
     Entity.prototype.onUpdate = undefined;
     Entity.prototype.super.onUpdate = Entity.prototype.onUpdate || function() {};
     Entity.prototype.update = function(context) {
+        if( this.preventUpdate ) return;
         this.onUpdate && this.onUpdate( context );
     };
     Entity.prototype.super.update = Entity.prototype.update;
+    Entity.prototype.remove = function() {
+        this.parentView.remove( this );
+        delete this;
+    };
+    
     
     var View = function() {
     };
@@ -39,7 +52,7 @@
         canvas.style.position = "absolute";
         canvas.style.x = 0;
         canvas.style.y = 0;
-        document.body.appendChild( canvas );
+        gameWrapper.appendChild( canvas );
         this.canvas = canvas;
         this.context = canvas.getContext( "2d" );
         this.entities = [];
@@ -49,6 +62,11 @@
     View.prototype.add = function(entity) {
         entity.parentView = this;
         this.entities.push( entity );
+    };
+    View.prototype.remove = function(entity) {
+        for(var i=0, l=this.entities.length; i<l; ++i) {
+            if( this.entities[i].id == entity.id ) this.entities.pop(i);
+        }
     };
     View.prototype.update = function() {
         this.super.update( this.context );
@@ -62,24 +80,38 @@
         
     };
     Map.prototype = new View;
-    Map.prototype.build = function(grid) {
-        var gridBlockH = this.height / grid.length;
-        var gridBlockW = this.width / grid[0].length;
+    Map.prototype.build = function(grid, mappings, shadows) {
+        mappings = mappings || {};
+        shadows = shadows || {};
+        
+        this.shadowLayer = new View().const( this.width, this.height );
+        this.gridH = this.height / grid.length;
+        this.gridW = this.width / grid[0].length;
+        
         for(var j=0, jl=grid.length; j<jl; ++j) {
             var igrid = grid[j];
             for(var i=0, l=igrid.length; i<l; ++i) {
                 var ijgrid = igrid[i];
-                if(ijgrid == 1) {
-                    this.add( new g.Wall("black").const(gridBlockW, gridBlockH, gridBlockW*i, gridBlockH*j) );
+                
+                var field = mappings[ijgrid];
+                if( field != undefined ) {
+                    var blockX = this.gridW*i;
+                    var blockY = this.gridH*j;
+                    var element = field( this, blockX, blockY );
+                    if( element != undefined ) this.add( element.const(this.gridW, this.gridH, blockX, blockY) );
                 }
-                else if(ijgrid == 8) {
-                    this.startPoint = { x: gridBlockW*i, y: gridBlockH*j };
-                }
-                else if(ijgrid == 9) {
-                    this.endPoint = { x: gridBlockW*i, y: gridBlockH*j };
+                var shadow = shadows[ijgrid];
+                if( shadow != undefined ) {
+                    var blockX = this.gridW*i;
+                    var blockY = this.gridH*j;
+                    var element = shadow( this, blockX, blockY );
+                    if( element != undefined ) this.shadowLayer.add( element.const(this.gridW, this.gridH, blockX, blockY) );
                 }
             }
         }
+        
+        this.shadowLayer.update();
+        this.update();
     };
     
     var Colladable = function() {
@@ -177,6 +209,25 @@
     
 })(window, document);
 
+
+/**
+ * Distance between two objects, having fields x and y
+ * @param obj1
+ * @param obj2
+ * @return distance between these two objects
+ */
+var distance = function(obj1, obj2) {
+    if( !(obj1.x && obj1.y && obj2.x && obj2.y) ) return 0;
+    return Math.sqrt( Math.pow(obj2.x - obj1.x, 2) + Math.pow(obj2.y - obj1.y, 2) );
+};
+
+var bgView = new g.View().const( 600, 400 );
+bgView.fill = function(c) {
+    c.fillStyle = "#01A611";
+    c.fillRect( 0, 0, this.width, this.height );
+}
+bgView.fill( bgView.context );
+
 var map = new g.Map().const( 600, 400 );
 var grid = [
     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
@@ -199,8 +250,25 @@ var grid = [
     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
     
 ];
-map.build(grid);
-map.update();
+
+map.build(
+    grid, 
+    {
+        0: null,
+        1: function() {
+            return new g.Wall("#005C09");
+        },
+        8: function(context, x, y) {
+            context.startPoint = { x: x, y: y };
+        }
+    },
+    {
+        9: function(context, x, y) {
+            context.endPoint = { x: x, y: y };
+            return new g.Wall("black");
+        }
+    }
+);
 
 
 var mouse = {
@@ -208,25 +276,30 @@ var mouse = {
     y: 0
 };
 addEventListener("mousemove", function(e) {
-    mouse.x = e.pageX,
-    mouse.y = e.pageY
+    mouse.x = e.layerX,
+    mouse.y = e.layerY
 }, false);
-addEventListener("click", function(e) {
+addEventListener("click", function(e) {console.log(e);
     var deltaX = mouse.y - activePlayer.y;
     var deltaY = mouse.x - activePlayer.x;
     var rad = Math.atan2( deltaX, deltaY );
     var force = Math.min( (Math.sqrt(deltaX*deltaX + deltaY*deltaY)/(map.width/2)) * 50, 30 );
     activePlayer.vx =  Math.cos( rad ) * force;
     activePlayer.vy = Math.sin( rad ) * force;
-    nextPlayer();
+    
+    activePlayer.hits++;
+    activePlayerDone = true;
     
     console.log("force: " + force);
+    console.log("player 1: " + ball.hits);
+    console.log("player 2: " + ball2.hits);
 }, false);
 
 var nextPlayer = function() {
     activePlayerNum++;
     if(activePlayerNum >= players.length) activePlayerNum = 0;
     activePlayer = players[activePlayerNum];
+    activePlayerDone = false;
 }
 
 var view = new g.View().const( 600, 400 );
@@ -234,9 +307,11 @@ view.mapLayer = map;
 var players = [];
 var activePlayerNum = -1;
 var activePlayer = undefined;
+var activePlayerDone = false;
 
 var stick = new g.Stick().const( 100, 10 );
 stick.onUpdate = function(c) {
+    if( this.preventUpdate ) return;
     this.x = activePlayer.x;
     this.y = activePlayer.y;
     
@@ -247,12 +322,14 @@ stick.onUpdate = function(c) {
     c.stroke();
     c.closePath();
 };
+
+g.Ball.prototype.hits = 0;
     
-var ball = new g.Ball("red").const( 16, 16 );
+var ball = new g.Ball("white").const( 16, 16 );
 ball.x = map.startPoint.x;
 ball.y = map.startPoint.y;
 
-var ball2 = new g.Ball("green").const( 16, 16 );
+var ball2 = new g.Ball("black").const( 16, 16 );
 ball2.x = map.startPoint.x;
 ball2.y = map.startPoint.y;
     
@@ -268,4 +345,19 @@ nextPlayer();
 var thread = new g.Thread().const(30);
 thread.run(function() {
     view.update();
+    if(
+        Math.abs(distance( activePlayer, map.endPoint )) < map.gridW ||
+        Math.abs(distance( activePlayer, {x: map.endPoint.x+map.gridW, y: map.endPoint.y+map.gridH} )) < map.gridW 
+    ) {
+        activePlayer.preventUpdate = true;
+        nextPlayer();
+    }
+    
+    if( activePlayerDone ) {
+        stick.preventUpdate = true;
+        if( activePlayer.vx + activePlayer.vy == 0 ) nextPlayer();
+    }
+    else {
+        stick.preventUpdate = false;
+    }
 });
