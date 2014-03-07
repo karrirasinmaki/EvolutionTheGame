@@ -20,9 +20,17 @@ io.sockets.on("connection", function(socket) {
     
     var notifyRoomChange = function() {
         var clients = io.sockets.clients(socket.room);
+        var users = (function() {
+            var obj = {};
+            for(var i=0, l=clients.length; i<l; ++i) {
+                obj[i] = {id: clients[i].id};
+            }
+            return obj;
+        })();
         var data = {
             room: socket.room,
-            userCount: clients.length
+            userCount: clients.length,
+            users: users
         };
         socket.emit("room-change", data);
     };
@@ -56,6 +64,10 @@ io.sockets.on("connection", function(socket) {
     
     socket.on("new-player", function(data) {
         io.sockets.in(socket.room).emit("new-player", data);
+    });
+    
+    socket.on("disconnect", function() {
+        io.sockets.in(socket.room).emit("leave-player", {id: socket.id});
     });
     
     socket.on("update-player", function(user) {

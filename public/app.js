@@ -63,7 +63,7 @@
         entity.parentView = this;
         this.entities.push( entity );
     };
-    View.prototype.remove = function(entity) {
+    View.prototype.remove = function(entity) {console.log(entity);console.log(this.entities);
         for(var i=0, l=this.entities.length; i<l; ++i) {
             if( this.entities[i].id == entity.id ) this.entities.pop(i);
         }
@@ -348,7 +348,7 @@
         
         g.Ball.prototype.hits = 0;
         
-        var thread = new g.Thread().const(30);
+        var thread = new g.Thread().const(100);
         var onStep = function() {
             view.update();
             var bound = Math.max( Math.abs(activePlayer.vx), Math.abs(activePlayer.vy) );
@@ -404,30 +404,34 @@
     
     var Room = new (function() {
         this.room = "";
-        this.roomUserCount = 0;
         this.players = {};
         this.currentGame = undefined;
         
-        this.setRoom = function(data) {console.log(data);
-            this.room = data.room;
-            this.roomUserCount = data.userCount;
+        this.setRoom = function(data) {
             if(this.room == User.info.rooms.LOBBY) {
                 console.log("lobddy");
             }
             else {
                 this.currentGame = new GameArena();
+                for(var i in data.users) {
+                    this.addPlayer( data.users[i] );
+                }
             }
         };
         this.addPlayer = function(user) {
-            this.roomUserCount++;
             var ball = this.currentGame.addPlayer();
             ball.userId = user.id;
             this.players[ user.id ] = ball;
         };
-        this.updatePlayer = function(data) {
-            var ball = this.players[ data.id ];
-            ball.x = data.x;
-            ball.y = data.y;
+        this.removePlayer = function(user) {
+            var ball = this.players[ user.id ];
+            ball.remove();
+            this.players.remove( user.id );
+        };
+        this.updatePlayer = function(user) {
+            var ball = this.players[ user.id ];
+            ball.x = user.x;
+            ball.y = user.y;
         };
     })();
     this.Room = Room;
@@ -451,6 +455,10 @@
         
         socket.on("new-player", function(data) {
             Room.addPlayer(data);
+        });
+        
+        socket.on("leave-player", function(data) {
+            Room.removePlayer(data);
         });
         
         socket.on("update-player", function(user) {
