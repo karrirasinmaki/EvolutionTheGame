@@ -214,223 +214,282 @@
     
 })(window, document);
 
-var view;
-var players = [];
-var activePlayerNum = -1;
-var activePlayer = undefined;
-var activePlayerDone = false;
-
-/**
- * Distance between two objects, having fields x and y
- * @param obj1
- * @param obj2
- * @return distance between these two objects
- */
-var distance = function(obj1, obj2) {
-    if( !(obj1.x && obj1.y && obj2.x && obj2.y) ) return 0;
-    return Math.sqrt( Math.pow(obj2.x - obj1.x, 2) + Math.pow(obj2.y - obj1.y, 2) );
-};
-
-var bgView = new g.View().const( 600, 400 );
-bgView.fill = function(c) {
-    c.fillStyle = "#01A611";
-    c.fillRect( 0, 0, this.width, this.height );
-}
-bgView.fill( bgView.context );
-
-var map = new g.Map().const( 600, 400 );
-var grid = [
-    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-    [1, , , , , , , , , , , , , , , , ,1],
-    [1, , , , , , , , , , , , , , , , ,1],
-    [1, , , , , , , , , , , , , , , , ,1],
-    [1, , , , , , , , , , , , , , , , ,1],
-    [1, , , , , , , , , , , , , , , , ,1],
-    [1, , , , ,1,1,1,1,1,1, , , , , , ,1],
-    [1, , , , ,1, , , , , , , , , , , ,1],
-    [1, , , , ,1, ,9, , , , , ,8, , , ,1],
-    [1, , , , ,1, , , , , , , , , , , ,1],
-    [1, , , , ,1,1,1,1,1,1, , , , , , ,1],
-    [1, , , , , , , , , , , , , , , , ,1],
-    [1, , , , , , , , , , , , , , , , ,1],
-    [1, , , , , , , , , , , , , , , , ,1],
-    [1, , , , , , , , , , , , , , , , ,1],
-    [1, , , , , , , , , , , , , , , , ,1],
-    [1, , , , , , , , , , , , , , , , ,1],
-    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+(function(window, document, Math) {
     
-];
-
-map.build(
-    grid, 
-    {
-        0: null,
-        1: function() {
-            return new g.Wall("#c7a474");
-        },
-        8: function(context, x, y) {
-            context.startPoint = { x: x, y: y };
-        }
-    },
-    {
-        9: function(context, x, y) {
-            context.endPoint = { x: x, y: y };
-        }
-    }
-);
-
-var hole = new g.Ball("black").const( 16, 16, map.endPoint.x + 8, map.endPoint.y + 8 );
-map.shadowLayer.add( hole );
-map.shadowLayer.update();
-
-
-var mouse = {
-    x: 0,
-    y: 0
-};
-addEventListener("mousemove", function(e) {
-    mouse.x = e.layerX,
-    mouse.y = e.layerY
-}, false);
-addEventListener("click", function(e) {
-    var deltaX = mouse.y - activePlayer.y;
-    var deltaY = mouse.x - activePlayer.x;
-    var rad = Math.atan2( deltaX, deltaY );
-    var force = Math.min( (Math.sqrt(deltaX*deltaX + deltaY*deltaY)/(map.width/2)) * 50, 30 );
-    activePlayer.vx =  Math.cos( rad ) * force;
-    activePlayer.vy = Math.sin( rad ) * force;
-    
-    activePlayer.hits++;
-    activePlayerDone = true;
-    
-    console.log("force: " + force);
-    for(var i=0, l=players.length; i<l; ++i) {
-        console.log("player "+i+": " + players[i].hits);
-    }
-}, false);
-
-var nextPlayer = function() {
-    activePlayerNum++;
-    if(activePlayerNum >= players.length) activePlayerNum = 0;
-    activePlayer = players[activePlayerNum];
-    activePlayerDone = false;
-}
-
-var stick = new g.Stick().const( 100, 10 );
-stick.onUpdate = function(c) {
-    if( this.preventUpdate ) return;
-    this.x = activePlayer.x;
-    this.y = activePlayer.y;
-    
-    c.strokeStyle = "black";
-    c.beginPath();
-    c.moveTo( this.x, this.y );
-    c.lineTo( mouse.x, mouse.y );
-    c.stroke();
-    c.closePath();
-};
-
-g.Ball.prototype.hits = 0;
-
-var thread = new g.Thread().const(30);
-var onStep = function() {
-    view.update();
-    var bound = Math.max( Math.abs(activePlayer.vx), Math.abs(activePlayer.vy) );
-    if(
-        (
-         Math.abs(distance( activePlayer, hole )) < hole.halfW - bound ||
-         Math.abs(distance( activePlayer, {x: hole.x+hole.halfW, y: hole.y+hole.halfH} )) < hole.halfW - bound
-        )
-    ) {
-        activePlayer.preventUpdate = true;
-        nextPlayer();
-    }
-    
-    if( activePlayerDone ) {
-        stick.preventUpdate = true;
-        if( activePlayer.vx + activePlayer.vy == 0 ) nextPlayer();
-    }
-    else {
-        stick.preventUpdate = false;
-    }
-};
-    
-var startGame = function() {
-    var ball = new g.Ball("white").const( 16, 16 );
-    ball.x = map.startPoint.x;
-    ball.y = map.startPoint.y;
-    
-    var ball2 = new g.Ball("black").const( 16, 16 );
-    ball2.x = map.startPoint.x;
-    ball2.y = map.startPoint.y;
-    
-    if(view == undefined) {
-        view = new g.View().const( 600, 400 );
-    }
-    view.removeAll();
-    view.mapLayer = map;
-    
-    players = [];
-    activePlayerNum = -1;
-    activePlayer = undefined;
-    activePlayerDone = false;
+    var GameArena = function() {
         
-    players.push( ball );
-    players.push( ball2 );
+        var view;
+        var playerCount = 0;
+        var players = [];
+        var activePlayerNum = -1;
+        var activePlayer = undefined;
+        var activePlayerDone = false;
+        
+        /**
+         * Distance between two objects, having fields x and y
+         * @param obj1
+         * @param obj2
+         * @return distance between these two objects
+         */
+        var distance = function(obj1, obj2) {
+            if( !(obj1.x && obj1.y && obj2.x && obj2.y) ) return 0;
+            return Math.sqrt( Math.pow(obj2.x - obj1.x, 2) + Math.pow(obj2.y - obj1.y, 2) );
+        };
+        
+        var mouse = {
+            x: 0,
+            y: 0
+        };
+        addEventListener("mousemove", function(e) {
+            mouse.x = e.layerX,
+            mouse.y = e.layerY
+        }, false);
+        addEventListener("click", function(e) {
+            var deltaX = mouse.y - activePlayer.y;
+            var deltaY = mouse.x - activePlayer.x;
+            var rad = Math.atan2( deltaX, deltaY );
+            var force = Math.min( (Math.sqrt(deltaX*deltaX + deltaY*deltaY)/(map.width/2)) * 50, 30 );
+            activePlayer.vx =  Math.cos( rad ) * force;
+            activePlayer.vy = Math.sin( rad ) * force;
+            
+            activePlayer.hits++;
+            activePlayerDone = true;
+            
+            console.log("force: " + force);
+            for(var i=0, l=players.length; i<l; ++i) {
+                console.log("player "+i+": " + players[i].hits);
+            }
+        }, false);
+        
+        var nextPlayer = function() {
+            activePlayerNum++;
+            if(activePlayerNum >= players.length) activePlayerNum = 0;
+            activePlayer = players[activePlayerNum];
+            activePlayerDone = false;
+        }
+        
+        this.addPlayer = function() {
+            var newBall = new g.Ball("white").const( 16, 16 );
+            newBall.x = map.startPoint.x;
+            newBall.y = map.startPoint.y;
+            playerCount++;
+            players.push( newBall );
+            view.add( newBall );
+            return newBall;
+        }
+        
+        /* UI components */
+        
+        var bgView = new g.View().const( 600, 400 );
+        bgView.fill = function(c) {
+            c.fillStyle = "#01A611";
+            c.fillRect( 0, 0, this.width, this.height );
+        }
+        bgView.fill( bgView.context );
+        
+        var map = new g.Map().const( 600, 400 );
+        var grid = [
+            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+            [1, , , , , , , , , , , , , , , , ,1],
+            [1, , , , , , , , , , , , , , , , ,1],
+            [1, , , , , , , , , , , , , , , , ,1],
+            [1, , , , , , , , , , , , , , , , ,1],
+            [1, , , , , , , , , , , , , , , , ,1],
+            [1, , , , ,1,1,1,1,1,1, , , , , , ,1],
+            [1, , , , ,1, , , , , , , , , , , ,1],
+            [1, , , , ,1, ,9, , , , , ,8, , , ,1],
+            [1, , , , ,1, , , , , , , , , , , ,1],
+            [1, , , , ,1,1,1,1,1,1, , , , , , ,1],
+            [1, , , , , , , , , , , , , , , , ,1],
+            [1, , , , , , , , , , , , , , , , ,1],
+            [1, , , , , , , , , , , , , , , , ,1],
+            [1, , , , , , , , , , , , , , , , ,1],
+            [1, , , , , , , , , , , , , , , , ,1],
+            [1, , , , , , , , , , , , , , , , ,1],
+            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+            
+        ];
+        
+        map.build(
+            grid, 
+            {
+                0: null,
+                1: function() {
+                    return new g.Wall("#c7a474");
+                },
+                8: function(context, x, y) {
+                    context.startPoint = { x: x, y: y };
+                }
+            },
+            {
+                9: function(context, x, y) {
+                    context.endPoint = { x: x, y: y };
+                }
+            }
+        );
+        
+        var hole = new g.Ball("black").const( 16, 16, map.endPoint.x + 8, map.endPoint.y + 8 );
+        map.shadowLayer.add( hole );
+        map.shadowLayer.update();
+        
+        var stick = new g.Stick().const( 100, 10 );
+        stick.onUpdate = function(c) {
+            if( this.preventUpdate ) return;
+            this.x = activePlayer.x;
+            this.y = activePlayer.y;
+            
+            c.strokeStyle = "black";
+            c.beginPath();
+            c.moveTo( this.x, this.y );
+            c.lineTo( mouse.x, mouse.y );
+            c.stroke();
+            c.closePath();
+        };
+        
+        g.Ball.prototype.hits = 0;
+        
+        var thread = new g.Thread().const(30);
+        var onStep = function() {
+            view.update();
+            var bound = Math.max( Math.abs(activePlayer.vx), Math.abs(activePlayer.vy) );
+            if(
+                (
+                 Math.abs(distance( activePlayer, hole )) < hole.halfW - bound ||
+                 Math.abs(distance( activePlayer, {x: hole.x+hole.halfW, y: hole.y+hole.halfH} )) < hole.halfW - bound
+                )
+            ) {
+                activePlayer.preventUpdate = true;
+                nextPlayer();
+            }
+            
+            if( activePlayerDone ) {
+                stick.preventUpdate = true;
+                if( activePlayer.vx + activePlayer.vy == 0 ) nextPlayer();
+            }
+            else {
+                stick.preventUpdate = false;
+            }
+            
+            socket.emit("update-player", {
+                id: activePlayer.userId,
+                x: activePlayer.x,
+                y: activePlayer.y
+            });
+        };
+            
+        if(view == undefined) {
+            view = new g.View().const( 600, 400 );
+        }
+        view.removeAll();
+        view.mapLayer = map;
+        
+        players = [];
+        activePlayerNum = -1;
+        activePlayer = undefined;
+        activePlayerDone = false;
+        
+        view.add( stick );
+        
+        this.startGame = function() {
+            
+            
+            
+            nextPlayer();
+            
+            thread.run(function() {
+                onStep();
+            });
+        };
+    };
     
-    view.add( ball );
-    view.add( ball2 );
-    view.add( stick );
+    var Room = new (function() {
+        this.room = "";
+        this.roomUserCount = 0;
+        this.players = {};
+        this.currentGame = undefined;
+        
+        this.setRoom = function(data) {console.log(data);
+            this.room = data.room;
+            this.roomUserCount = data.userCount;
+            if(this.room == User.info.rooms.LOBBY) {
+                console.log("lobddy");
+            }
+            else {
+                this.currentGame = new GameArena();
+            }
+        };
+        this.addPlayer = function(user) {
+            this.roomUserCount++;
+            var ball = this.currentGame.addPlayer();
+            ball.userId = user.id;
+            this.players[ user.id ] = ball;
+        };
+        this.updatePlayer = function(data) {
+            var ball = this.players[ data.id ];
+            ball.x = data.x;
+            ball.y = data.y;
+        };
+    })();
+    this.Room = Room;
     
-    nextPlayer();
+    var User = new (function() {
+        this.info = {};
+    })();
+    this.User = User;
     
-    thread.run(function() {
-        onStep();
-    });
-};
-
-var user = {};
-
-var socket = io.connect('http://localhost/');
-socket.on('connect', function (userData) {
-    user = userData;
-                                      
-    socket.on('msg', function (data) {console.log(data);
-        MessageBoard.addMessage( data );
-    });
-});
-
-var MessageBoard = new (function() {
-    
-    var wrapper = document.createElement("div");
-    wrapper.id = "message-board";
-    document.body.appendChild( wrapper );
-    
-    var messages = document.createElement("div");
-    messages.id = "messages";
-    wrapper.appendChild( messages );
-    
-    var form = document.createElement("form");
-    var input = document.createElement("input");
-    form.onsubmit = function(e) {
-        e.preventDefault();
-        socket.emit("msg", {
-            id: user.id,
-            message: input.value
+    var socket = io.connect('http://localhost/');
+    socket.on('login', function (userData) {
+        User.info = userData;
+                                          
+        socket.on('msg', function (data) {
+            MessageBoard.addMessage( data );
         });
-        input.value = "";
-    };
-    form.appendChild( input );
-    wrapper.appendChild( form );
+        
+        socket.on("room-change", function(data) {
+            Room.setRoom( data );
+        });
+        
+        socket.on("new-player", function(data) {
+            Room.addPlayer(data);
+        });
+        
+        socket.on("update-player", function(user) {
+            Room.updatePlayer(user);
+        });
+        
+        if(location.hash) socket.emit("room-change", location.hash);
+    });
     
-    this.wrapper = wrapper;
-    this.messages = messages;
-    this.input = input;
+    var MessageBoard = new (function() {
+        
+        var wrapper = document.createElement("div");
+        wrapper.id = "message-board";
+        document.body.appendChild( wrapper );
+        
+        var messages = document.createElement("div");
+        messages.id = "messages";
+        wrapper.appendChild( messages );
+        
+        var form = document.createElement("form");
+        var input = document.createElement("input");
+        form.onsubmit = function(e) {
+            e.preventDefault();
+            socket.emit("msg", input.value);
+            input.value = "";
+        };
+        form.appendChild( input );
+        wrapper.appendChild( form );
+        
+        this.wrapper = wrapper;
+        this.messages = messages;
+        this.input = input;
+        
+        this.addMessage = function(data) {
+            var el = document.createElement("div");
+            el.innerHTML = '<b>'+data.id+': </b>' + data.message;
+            this.messages.appendChild( el );
+        };
+        
+    })();
     
-    this.addMessage = function(data) {
-        var el = document.createElement("div");
-        el.innerHTML = '<b>'+data.id+': </b>' + data.message;
-        this.messages.appendChild( el );
-    };
-    
-})();
+})(window, document, Math);

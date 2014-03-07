@@ -12,21 +12,54 @@ server.listen(80);
 
 app.use(express.static(__dirname + "/public"));
 
-var id = 0;
+var rooms = {
+    LOBBY: "lobby"
+};
 
 io.sockets.on("connection", function(socket) {
-    socket.emit("connect", {
-        id: id
+    
+    var notifyRoomChange = function() {
+        var clients = io.sockets.clients(socket.room);
+        var data = {
+            room: socket.room,
+            userCount: clients.length
+        };
+        socket.emit("room-change", data);
+    };
+    var switchRoom = function(room) {
+        if(socket.room) socket.leave( socket.room );
+        socket.room = room;
+        socket.join( socket.room );
+        notifyRoomChange();
+    };
+    
+    /* init user */
+    socket.emit("login", {
+        id: socket.id,
+        rooms: rooms
     });
-    id++;
-
-	socket.on("c", function(data) {
-		socket.broadcast.emit("c", data);
+    switchRoom(rooms.LOBBY);
+    
+	socket.on("msg", function(message) {
+        var data = {
+            id: socket.id,
+            message: message
+        };
+        io.sockets.in(socket.room).emit("msg", data);
+        socket.broadcast.to('room').emit("msg", data);
 	});
-
-	socket.on("msg", function(data) {
-		socket.emit("msg", data);
-		socket.broadcast.emit("msg", data);
-	});
+    
+    socket.on("room-change", function(room) {
+        switchRoom(room);
+        io.sockets.in(socket.room).emit("new-player", {id: socket.id});
+    });
+    
+    socket.on("new-player", function(data) {
+        io.sockets.in(socket.room).emit("new-player", data);
+    });
+    
+    socket.on("update-player", function(user) {
+        io.sockets.in(socket.room).emit("update-player", user);
+    });
 
 });
