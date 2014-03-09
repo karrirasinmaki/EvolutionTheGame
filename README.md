@@ -14,3 +14,10 @@ Features
 - Single player mode
 - In-game chat
 - Cross-platform, cross-device
+
+Install & Run
+---
+- Clone repo
+- `npm install` to install depedencies.
+- `npm .` to launch
+- Go to localhost to have fun
