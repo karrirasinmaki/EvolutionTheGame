@@ -15,4 +15,5 @@ Ensimmäiset rivit koodia. Simppelin pelimoottorin luonti. Yritin ensin löytä�
 7.3.2014 - 4h
 Ensimmäiset askeleet moninpeliin. Huomasin ajan käyvän vähiin ja kiireen huomaa koodin laadussa.
 
-9.3.2014
+9.3.2014 - 5h
+Monipelin hiomista toimivaksi. Päätin luopua vuoropohjaisesta systeemistä ajan puitteissa. Jokainen lätkiköön palloaan haluamaansa tahtiin. Pari uutta mappia ja kenttävalistin. Peli jäi lähemmäksi prototyyppiä kuin valmista tuotetta.
