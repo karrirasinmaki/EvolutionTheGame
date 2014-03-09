@@ -2,8 +2,8 @@
   "name": "Minigolf",
   "version": "0.1.2",
   "description": "Classic-style multiplayer minigolf",
-  "main": "app.js",
-  "author": "Grant Timmerman",
+  "main": "index.js",
+  "author": "Karri Rasinmäki",
   "private": true,
   "license": "BSD",
   "dependencies": {

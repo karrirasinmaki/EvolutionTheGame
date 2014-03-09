@@ -1,11 +1,11 @@
 
 var express = require("express");
 var app = express();
-var server = require("http").createServer(app)
-var io = require("socket.io").listen(server)
+var server = require("http").createServer(app);
+var io = require("socket.io").listen(server);
 
 io.configure(function () {
-//	io.set('transports', ['xhr-polling', 'jsonp-polling']);
+	io.set('transports', ['xhr-polling', 'jsonp-polling']);
 });
 
 server.listen(80);
