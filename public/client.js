@@ -10,10 +10,14 @@
     };
     Thread.prototype.const = function(updateInterval) {
         this.updateInterval = updateInterval;
+        this.intervalId = undefined;
         return this;
     };
     Thread.prototype.run = function(onTick) {
         setInterval( onTick, this.updateInterval );
+    };
+    Thread.prototype.stop = function() {
+        clearInterval(this.intervalId);
     };
     
     var Entity = function() {
@@ -381,9 +385,9 @@
             activePlayerDone = false;
         }
         
-        var playerColors = ["red", "white", "black", "blue"];
+        var playerColors = ["red", "white", "#fde", "blue", "#ff0", "f0f"];
         this.addPlayer = function() {
-            var newBall = new g.Ball(playerColors[playerCount]).const( 16, 16 );
+            var newBall = new g.Ball(playerColors[players.length-1]).const( 16, 16 );
             newBall.x = map.startPoint.x;
             newBall.y = map.startPoint.y;
             playerCount++;
@@ -427,7 +431,7 @@
         stats.id = "stats";
         document.body.appendChild( stats );
         
-        var thread = new g.Thread().const(100);
+        var thread = new g.Thread().const(30);
         var onStep = function() {
             view.update();
             
@@ -447,8 +451,10 @@
                 
                 if( activePlayerDone ) {
                     stick.preventUpdate = true;
-                    postUpdatePlayer();
-                    if( activePlayer.vx + activePlayer.vy == 0 ) nextPlayer();
+                    if( activePlayer.vx + activePlayer.vy == 0 ) {
+                        postUpdatePlayer();
+                        nextPlayer();
+                    }
                 }
                 else {
                     stick.preventUpdate = false;
@@ -478,6 +484,10 @@
                 onStep();
             });
         };
+        
+        this.destroy = function() {
+            thread.stop();
+        };
     };
     
     var Room = new (function() {
@@ -497,6 +507,11 @@
             this.currentGame.startGame();
         };
         this.freshStart = function(roomData) {
+            document.getElementById("game").innerHTML = "";
+            if(this.currentGame) {
+                this.currentGame.destroy();
+                this.players = {};
+            }
             this.currentGame = new GameArena(roomData.gridName);
             var arr = [];
             for(var i in roomData.users) {
@@ -524,6 +539,7 @@
                     startButtonsWrapper.appendChild( startButton );
                 }
                 document.body.appendChild( startButtonsWrapper );
+                MessageBoard.addMessage({id: "game", message: "Share this link to your fiend: <a href='" + location.href + "'>" + location.href + "</a>"});
             }
         };
         this.addPlayer = function(user) {
@@ -577,6 +593,7 @@
         
         socket.on("leave-player", function(data) {
             //Room.removePlayer(data);
+            MessageBoard.addMessage({id: "game", message: data.id + " left"});
         });
         
         socket.on("update-player", function(user) {
