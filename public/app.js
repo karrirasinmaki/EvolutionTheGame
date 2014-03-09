@@ -219,7 +219,73 @@
 
 (function(window, document, Math) {
     
-    var GameArena = function() {
+    var maps = {
+        "basic": [
+            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+            [1, , , , , , , , , , , , , , , , ,1],
+            [1, , , , , , , , , , , , , , , , ,1],
+            [1, , , , , , , , , , , , , , , , ,1],
+            [1, , , , , , , , , , , , , , , , ,1],
+            [1, , , , , , , , , , , , , , , , ,1],
+            [1, , , , ,1,1,1,1,1,1, , , , , , ,1],
+            [1, , , , ,1, , , , , , , , , , , ,1],
+            [1, , , , ,1, ,9, , , , , ,8, , , ,1],
+            [1, , , , ,1, , , , , , , , , , , ,1],
+            [1, , , , ,1,1,1,1,1,1, , , , , , ,1],
+            [1, , , , , , , , , , , , , , , , ,1],
+            [1, , , , , , , , , , , , , , , , ,1],
+            [1, , , , , , , , , , , , , , , , ,1],
+            [1, , , , , , , , , , , , , , , , ,1],
+            [1, , , , , , , , , , , , , , , , ,1],
+            [1, , , , , , , , , , , , , , , , ,1],
+            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+            
+        ],
+        "basic2": [
+            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+            [1, , , , ,1, , , , , , , , , , , ,1],
+            [1, , , , ,1, , , , , , , , , , , ,1],
+            [1, , , , , , , , , , , , , , , , ,1],
+            [1, , , , , , , , , , , , , , , , ,1],
+            [1, , , , , , , , , , , , , , , , ,1],
+            [1, , , , ,1,1,1,1,1,1, , , , , , ,1],
+            [1, , , , ,1, , , , , , , , , , , ,1],
+            [1, ,8, , ,1, ,9, , , , ,1,1, , , ,1],
+            [1, , , , ,1, , , , , , , , , , , ,1],
+            [1, , , , ,1,1,1,1,1,1, , , , , , ,1],
+            [1, , , , , , , , , , , , , , , , ,1],
+            [1, , , , , , , , , , , , , , , , ,1],
+            [1, , , , , , , , , , , , , , , , ,1],
+            [1, , , , , , , , , , , , , , , , ,1],
+            [1, , , , ,1, , , , , , , , , , , ,1],
+            [1, , , , ,1, , , , , , , , , , , ,1],
+            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+            
+        ],
+        "funn": [
+            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+            [1, , , , ,1, , , , , , , , , , ,1,1],
+            [1, , , , ,1, , , ,1,1,1,1,1, , , ,1],
+            [1, , , , ,1, , , , , , , , , , , ,1],
+            [1, , , , ,1, , ,1,1,1,1,1,1,1, , ,1],
+            [1, , , , ,1, , ,1, , , , , , , , ,1],
+            [1, , , , ,1, , ,1, , , , , , , , ,1],
+            [1, , , , ,1, , ,1, , , , , , , , ,1],
+            [1, ,8, , ,1, , ,1, , , ,1,1,1,1,1,1],
+            [1, , , , ,1, , ,1,1, , , ,1, , , ,1],
+            [1, , , , ,1, , ,1, ,1, , , ,1, , ,1],
+            [1, , , , ,1, , ,1, , ,1, , , ,1, ,1],
+            [1, , , , , , , ,1, , , ,1, , , , ,1],
+            [1, , , , , , , ,1, , , , , , , , ,1],
+            [1, , , , ,1, , ,1, , , , , , , , ,1],
+            [1, , , , ,1,1,1,1, , , , , , , ,1,1],
+            [1, , , , ,1, ,9, , , , , , , ,1,1,1],
+            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+            
+        ]
+    };
+    
+    var GameArena = function(gridName) {
         
         var view;
         var playerCount = 0;
@@ -239,6 +305,30 @@
             return Math.sqrt( Math.pow(obj2.x - obj1.x, 2) + Math.pow(obj2.y - obj1.y, 2) );
         };
         
+        var getMap = function(gridName) {
+            var map = new g.Map().const( 600, 400 );
+            
+            map.build(
+                maps[ gridName || "basic" ], 
+                {
+                    0: null,
+                    1: function() {
+                        return new g.Wall("#c7a474");
+                    },
+                    8: function(context, x, y) {
+                        context.startPoint = { x: x, y: y };
+                    }
+                },
+                {
+                    9: function(context, x, y) {
+                        context.endPoint = { x: x, y: y };
+                    }
+                }
+            );
+            
+            return map;
+        }
+        
         var mouse = {
             x: 0,
             y: 0
@@ -247,7 +337,7 @@
             mouse.x = e.layerX,
             mouse.y = e.layerY
         }, false);
-        addEventListener("click", function(e) {
+        addEventListener("click", function(e) {            
             var deltaX = mouse.y - activePlayer.y;
             var deltaY = mouse.x - activePlayer.x;
             var rad = Math.atan2( deltaX, deltaY );
@@ -266,8 +356,14 @@
             }
         }, false);
         
-        this.setActivPlayer = function(player) {
+        this.setActivePlayer = function(player) {
             activePlayer = player;
+            console.log(activePlayer);
+        };
+        
+        this.setPlayers = function(playersArr) {
+            playerCount = playersArr.length;
+            players = playersArr;
         };
         
         var postUpdatePlayer = function() {
@@ -276,14 +372,12 @@
                 x: activePlayer.x,
                 y: activePlayer.y,
                 vx: activePlayer.vx,
-                vy: activePlayer.vy
+                vy: activePlayer.vy,
+                hits: activePlayer.hits
             });
         };
         
         var nextPlayer = function() {
-            activePlayerNum++;
-            if(activePlayerNum >= players.length) activePlayerNum = 0;
-            activePlayer = players[activePlayerNum];
             activePlayerDone = false;
         }
         
@@ -307,46 +401,7 @@
         }
         bgView.fill( bgView.context );
         
-        var map = new g.Map().const( 600, 400 );
-        var grid = [
-            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-            [1, , , , , , , , , , , , , , , , ,1],
-            [1, , , , , , , , , , , , , , , , ,1],
-            [1, , , , , , , , , , , , , , , , ,1],
-            [1, , , , , , , , , , , , , , , , ,1],
-            [1, , , , , , , , , , , , , , , , ,1],
-            [1, , , , ,1,1,1,1,1,1, , , , , , ,1],
-            [1, , , , ,1, , , , , , , , , , , ,1],
-            [1, , , , ,1, ,9, , , , , ,8, , , ,1],
-            [1, , , , ,1, , , , , , , , , , , ,1],
-            [1, , , , ,1,1,1,1,1,1, , , , , , ,1],
-            [1, , , , , , , , , , , , , , , , ,1],
-            [1, , , , , , , , , , , , , , , , ,1],
-            [1, , , , , , , , , , , , , , , , ,1],
-            [1, , , , , , , , , , , , , , , , ,1],
-            [1, , , , , , , , , , , , , , , , ,1],
-            [1, , , , , , , , , , , , , , , , ,1],
-            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
-            
-        ];
-        
-        map.build(
-            grid, 
-            {
-                0: null,
-                1: function() {
-                    return new g.Wall("#c7a474");
-                },
-                8: function(context, x, y) {
-                    context.startPoint = { x: x, y: y };
-                }
-            },
-            {
-                9: function(context, x, y) {
-                    context.endPoint = { x: x, y: y };
-                }
-            }
-        );
+        var map = getMap(gridName);
         
         var hole = new g.Ball("black").const( 16, 16, map.endPoint.x + 8, map.endPoint.y + 8 );
         map.shadowLayer.add( hole );
@@ -368,28 +423,44 @@
         
         g.Ball.prototype.hits = 0;
         
+        var stats = document.createElement("div");
+        stats.id = "stats";
+        document.body.appendChild( stats );
+        
         var thread = new g.Thread().const(100);
         var onStep = function() {
             view.update();
-            var bound = Math.max( Math.abs(activePlayer.vx), Math.abs(activePlayer.vy) );
-            if(
-                (
-                 Math.abs(distance( activePlayer, hole )) < hole.halfW - bound ||
-                 Math.abs(distance( activePlayer, {x: hole.x+hole.halfW, y: hole.y+hole.halfH} )) < hole.halfW - bound
-                )
-            ) {
-                activePlayer.preventUpdate = true;
-                nextPlayer();
+            
+            if(activePlayer.mapDone != true) {
+                var bound = Math.max( Math.abs(activePlayer.vx), Math.abs(activePlayer.vy) );
+                if(
+                    (
+                     Math.abs(distance( activePlayer, hole )) < hole.halfW - bound ||
+                     Math.abs(distance( activePlayer, {x: hole.x+hole.halfW, y: hole.y+hole.halfH} )) < hole.halfW - bound
+                    )
+                ) {
+                    activePlayer.preventUpdate = true;
+                    activePlayer.mapDone = true;
+                    socket.emit("player-finish");
+                    nextPlayer();
+                }
+                
+                if( activePlayerDone ) {
+                    stick.preventUpdate = true;
+                    postUpdatePlayer();
+                    if( activePlayer.vx + activePlayer.vy == 0 ) nextPlayer();
+                }
+                else {
+                    stick.preventUpdate = false;
+                }
             }
             
-            if( activePlayerDone ) {
-                stick.preventUpdate = true;
-                postUpdatePlayer();
-                if( activePlayer.vx + activePlayer.vy == 0 ) nextPlayer();
+            var statsBuff = "";
+            for(var i=0, l=players.length; i<l; ++i) {
+                var youText = (players[i].userId == Room.myId ? " (you)" : "");
+                statsBuff += "player "+i+youText+": " + players[i].hits + "<br>";
             }
-            else {
-                stick.preventUpdate = false;
-            }
+            stats.innerHTML = statsBuff;
         };
             
         if(view == undefined) {
@@ -398,19 +469,11 @@
         view.removeAll();
         view.mapLayer = map;
         
-        players = [];
-        activePlayerNum = -1;
-        activePlayer = undefined;
-        activePlayerDone = false;
-        
         view.add( stick );
         
         this.startGame = function() {
-            
-            
-            
+            activePlayerNum = 0;
             nextPlayer();
-            
             thread.run(function() {
                 onStep();
             });
@@ -422,22 +485,52 @@
         this.players = {};
         this.currentGame = undefined;
         this.myId = undefined;
+        this.myPlayerNum = undefined;
         
-        this.setRoom = function(data) {
+        this.startGame = function() {
+            var arr = [];
+            for(var k in this.players) {
+                if(!this.players.hasOwnProperty(k) || this.players[k] == null) continue;
+                arr.push( this.players[k] );
+            }
+            this.currentGame.setPlayers( arr );
+            this.currentGame.startGame();
+        };
+        this.freshStart = function(roomData) {
+            this.currentGame = new GameArena(roomData.gridName);
+            var arr = [];
+            for(var i in roomData.users) {
+                arr.push( this.addPlayer( roomData.users[i] ) );
+            }
+            this.currentGame.setActivePlayer( this.players[ this.myId ] );
+            this.currentGame.setPlayers( arr );
+            this.currentGame.startGame();
+        };
+        this.setRoom = function(data) {console.log(data);
+            this.room = data.room;
             if(this.room == User.info.rooms.LOBBY) {
-                console.log("lobddy");
+                MessageBoard.addMessage({id: "game", message: "Put hashtag in url to start new game room and share it with your friend. Eq. /#myroom123"});
             }
             else {
-                this.currentGame = new GameArena();
-                for(var i in data.users) {
-                    this.addPlayer( data.users[i] );
+                var startButtonsWrapper = document.createElement("div");
+                startButtonsWrapper.id = "start-buttons-wrapper";
+                startButtonsWrapper.textContent = "Start game by selecting level";
+                for(var i in maps) {
+                    var startButton = document.createElement("button");
+                    startButton.textContent = i;
+                    startButton.onclick = function(e) {
+                        socket.emit("start-game", this.textContent);
+                    };
+                    startButtonsWrapper.appendChild( startButton );
                 }
+                document.body.appendChild( startButtonsWrapper );
             }
         };
         this.addPlayer = function(user) {
             var ball = this.currentGame.addPlayer();
             ball.userId = user.id;
             this.players[ user.id ] = ball;
+            return ball;
         };
         this.removePlayer = function(user) {
             var ball = this.players[ user.id ];
@@ -450,6 +543,10 @@
             ball.y = user.y;
             ball.vx = user.vx;
             ball.vy = user.vy;
+            ball.hits = user.hits;
+        };
+        this.playerFinish = function(user) {
+            this.players[ user.id ].preventUpdate = true;
         };
     })();
     this.Room = Room;
@@ -462,6 +559,7 @@
     var socket = io.connect('http://localhost/');
     socket.on('login', function (userData) {
         User.info = userData;
+        Room.myId = userData.id;
                                           
         socket.on('msg', function (data) {
             MessageBoard.addMessage( data );
@@ -469,18 +567,30 @@
         
         socket.on("room-change", function(data) {
             Room.setRoom( data );
+            MessageBoard.addMessage({id: "game", message: "You are in room " + data.room});
         });
         
         socket.on("new-player", function(data) {
-            Room.addPlayer(data);
+            //Room.addPlayer(data);
+            MessageBoard.addMessage({id: "game", message: data.id + " joined"});
         });
         
         socket.on("leave-player", function(data) {
-            Room.removePlayer(data);
+            //Room.removePlayer(data);
         });
         
         socket.on("update-player", function(user) {
             Room.updatePlayer(user);
+        });
+        
+        socket.on("player-finish", function(user) {
+            Room.playerFinish(user);
+            MessageBoard.addMessage({id: "game", message: user.id + " finished with " + Room.players[user.id].hits + " hits"});
+        });
+        
+        socket.on("start-game", function(roomData) {
+            Room.freshStart(roomData);
+            MessageBoard.addMessage({id: "game", message: "Game started"});
         });
         
         if(location.hash) socket.emit("room-change", location.hash);
@@ -512,7 +622,7 @@
         
         this.addMessage = function(data) {
             var el = document.createElement("div");
-            el.innerHTML = '<b>'+data.id+': </b>' + data.message;
+            el.innerHTML = '<b>'+(data.id == Room.myId ? "you" : data.id)+': </b>' + data.message;
             this.messages.appendChild( el );
         };
         
