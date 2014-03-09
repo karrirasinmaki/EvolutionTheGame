@@ -63,9 +63,12 @@
         entity.parentView = this;
         this.entities.push( entity );
     };
-    View.prototype.remove = function(entity) {console.log(entity);console.log(this.entities);
+    View.prototype.remove = function(entity) {
         for(var i=0, l=this.entities.length; i<l; ++i) {
-            if( this.entities[i].id == entity.id ) this.entities.pop(i);
+            if( this.entities[i].id == entity.id ) {
+                this.entities.pop(i);
+                return;
+            }
         }
     };
     View.prototype.removeAll = function() {
@@ -255,11 +258,27 @@
             activePlayer.hits++;
             activePlayerDone = true;
             
+            postUpdatePlayer();
+            
             console.log("force: " + force);
             for(var i=0, l=players.length; i<l; ++i) {
                 console.log("player "+i+": " + players[i].hits);
             }
         }, false);
+        
+        this.setActivPlayer = function(player) {
+            activePlayer = player;
+        };
+        
+        var postUpdatePlayer = function() {
+            socket.emit("update-player", {
+                id: activePlayer.userId,
+                x: activePlayer.x,
+                y: activePlayer.y,
+                vx: activePlayer.vx,
+                vy: activePlayer.vy
+            });
+        };
         
         var nextPlayer = function() {
             activePlayerNum++;
@@ -268,8 +287,9 @@
             activePlayerDone = false;
         }
         
+        var playerColors = ["red", "white", "black", "blue"];
         this.addPlayer = function() {
-            var newBall = new g.Ball("white").const( 16, 16 );
+            var newBall = new g.Ball(playerColors[playerCount]).const( 16, 16 );
             newBall.x = map.startPoint.x;
             newBall.y = map.startPoint.y;
             playerCount++;
@@ -364,17 +384,12 @@
             
             if( activePlayerDone ) {
                 stick.preventUpdate = true;
+                postUpdatePlayer();
                 if( activePlayer.vx + activePlayer.vy == 0 ) nextPlayer();
             }
             else {
                 stick.preventUpdate = false;
             }
-            
-            socket.emit("update-player", {
-                id: activePlayer.userId,
-                x: activePlayer.x,
-                y: activePlayer.y
-            });
         };
             
         if(view == undefined) {
@@ -406,6 +421,7 @@
         this.room = "";
         this.players = {};
         this.currentGame = undefined;
+        this.myId = undefined;
         
         this.setRoom = function(data) {
             if(this.room == User.info.rooms.LOBBY) {
@@ -426,12 +442,14 @@
         this.removePlayer = function(user) {
             var ball = this.players[ user.id ];
             ball.remove();
-            this.players.remove( user.id );
+            this.players[ user.id ] = null;
         };
         this.updatePlayer = function(user) {
             var ball = this.players[ user.id ];
             ball.x = user.x;
             ball.y = user.y;
+            ball.vx = user.vx;
+            ball.vy = user.vy;
         };
     })();
     this.Room = Room;
