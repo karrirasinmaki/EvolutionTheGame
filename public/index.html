@@ -4,16 +4,18 @@
         <meta charset="utf-8">
         <title>Minigolf</title>
         <style>
-            #game { width: 600px; height: 400px; margin: 0 auto; }
+            html, body { padding: 0; margin: 0; }
+            body { background: rgb(109, 175, 133); }
+            #game { width: 600px; height: 400px; margin: 0 auto; margin-top: 1em; box-shadow: 0 0 0.5em rgba(0,0,0,0.1); }
             #stats { position: absolute; left: 1em; top: 1em; }
-            #message-board { position: relative; height: 12em; overflow: hidden; }
+            #message-board { position: relative; height: 12em; overflow: hidden; margin: 1.5em 0; padding: 0.5em; background: rgba(0,0,0,0.1); box-shadow: inset 0 0 0.5em rgba(0,0,0,0.1); }
             #message-board form { position: absolute; bottom: 0; height: 2em; }
             #messages { position: absolute; bottom: 2em; }
         </style>
-        <script src="/socket.io/socket.io.js"></script>
+        <script src="socket.io/socket.io.js"></script>
     </head>
     <body>
         
-        <script type="application/javascript" src="/app.js"></script>
+        <script type="application/javascript" src="client.js"></script>
     </body>
 </html>

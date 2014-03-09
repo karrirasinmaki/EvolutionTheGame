@@ -18,8 +18,6 @@ var rooms = {
 
 io.sockets.on("connection", function(socket) {
     
-    socket.theid = new Date().getTime();
-    
     var getRoomData = function() {
         var clients = io.sockets.clients(socket.room);
         var users = (function() {

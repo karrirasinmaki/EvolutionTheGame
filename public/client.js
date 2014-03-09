@@ -608,6 +608,7 @@
         
         var form = document.createElement("form");
         var input = document.createElement("input");
+        input.placeholder = "say something...";
         form.onsubmit = function(e) {
             e.preventDefault();
             socket.emit("msg", input.value);
