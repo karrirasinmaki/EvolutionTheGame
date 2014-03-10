@@ -618,7 +618,7 @@
     })();
     this.User = User;
     
-    var socket = io.connect('http://localhost/');
+    var socket = io.connect("http://"+window.location.host);
     socket.on('login', function (userData) {
         User.info = userData;
         Room.myId = userData.id;
