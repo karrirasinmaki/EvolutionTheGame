@@ -3,7 +3,7 @@ Minigolf
 
 Multiplayer minigolf game written in JavaScript and node.js.
 
-Demo here:
+Demo here: (Might not always work, because of server, so good luck with that!)
 http://karrirasinmaki.tk/minigolf
 
 To create game room, add hashtag to url. Eq. http://karrirasinmaki.tk/minigolf/#thegameroom123
@@ -16,11 +16,10 @@ Classic style minigolf game. Play everywhere, with every device, with everyone.
 
 Features
 --------
-- Lobby, where you challenge other players
+- Lobby
 - Share a link to chellenge your friends
-- Single player mode
 - In-game chat
-- Cross-platform, cross-device
+- Cross-browser
 
 Install & Run
 ---
