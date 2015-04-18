@@ -1,6 +1,8 @@
 Minigolf
 ========
 
+This was a university NodeJS -course training project.
+
 Multiplayer minigolf game written in JavaScript and node.js.
 
 Idea
